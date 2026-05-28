@@ -29,14 +29,14 @@ Responda sempre em português brasileiro, com linguagem acessível e humana.`;
 
 export default async function handler(req) {
   if (req.method !== "POST") {
-    retornar nova Response("Método não permitido", { status: 405 });
+    return nova Response("Método não permitido", { status: 405 });
   }
 
-  tentar {
+  try {
     const { messages } = await req.json();
 
-    se (!mensagens || !Array.isArray(mensagens)) {
-      retornar nova Response(JSON.stringify({ error: "Solicitação inválida" }), {
+    if (!mensagens || !Array.isArray(mensagens)) {
+      return new Response(JSON.stringify({ error: "Solicitação inválida" }), {
         status: 400,
         cabeçalhos: { "Content-Type": "application/json" },
       });
@@ -44,8 +44,8 @@ export default async function handler(req) {
 
     const apiKey = process.env.GEMINI_API_KEY;
 
-    se (!apiKey) {
-      retornar nova Response(JSON.stringify({ error: "GEMINI_API_KEY não definida" }), {
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "GEMINI_API_KEY não definida" }), {
         status: 500,
         cabeçalhos: { "Content-Type": "application/json" },
       });
@@ -80,8 +80,8 @@ export default async function handler(req) {
 
     const geminiData = await geminiResponse.json();
 
-    se (!geminiResponse.ok) {
-      retornar nova resposta(
+    if (!geminiResponse.ok) {
+      return new resposta(
         JSON.stringify({ error: "Erro Gemini", details: geminiData }),
         {
           status: 502,
@@ -94,12 +94,12 @@ export default async function handler(req) {
       geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ||
       "Desculpe, não consegui gerar uma resposta agora.";
 
-    retornar nova Response(JSON.stringify({ content: text }), {
+    return new Response(JSON.stringify({ content: text }), {
       status: 200,
       cabeçalhos: { "Content-Type": "application/json" },
     });
   } catch (erro) {
-    retornar nova resposta(
+    return new resposta(
       JSON.stringify({ error: "Erro interno do servidor", details: err.message }),
       {
         status: 500,
