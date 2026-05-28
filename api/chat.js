@@ -48,7 +48,6 @@ export default async function handler(req) {
       });
     }
 
-    // Monta histórico no formato do Gemini (roles: "user" e "model")
     const contents = messages
       .filter(m => m.role === "user" || m.role === "assistant")
       .map(m => ({
@@ -67,9 +66,8 @@ export default async function handler(req) {
       },
     };
 
-    // Modelo atualizado: gemini-2.0-flash-001
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,5 +77,25 @@ export default async function handler(req) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
-      return new Resp
+      return new Response(
+        JSON.stringify({ error: `Gemini error: ${response.status}`, details: errorText }),
+        { status: 502, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const data = await response.json();
+    const text =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "Desculpe, não consegui gerar uma resposta.";
+
+    return new Response(JSON.stringify({ content: text }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: "Internal server error", details: err.message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+}
