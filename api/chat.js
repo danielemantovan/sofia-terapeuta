@@ -28,7 +28,7 @@ TOM: Caloroso, direto, empático. Sem julgamentos morais. Nunca minimize a exper
 Responda sempre em português brasileiro, com linguagem acessível e humana.`;
 
 export default async function handler(req) {
-  se (req.method !== "POST") {
+  if (req.method !== "POST") {
     retornar nova Response("Método não permitido", { status: 405 });
   }
 
