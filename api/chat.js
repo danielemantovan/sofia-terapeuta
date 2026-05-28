@@ -41,36 +41,33 @@ export default async function handler(req) {
 
     const apiKey = process.env.GEMINI_API_KEY;
 
-    // Convert messages to Gemini format
-    // Gemini uses "user" and "model" roles (not "assistant")
-    // Skip the opening assistant message for history
-    const history = messages
-      .slice(0, -1) // all except last
-      .filter(m => m.role !== "assistant" || messages.indexOf(m) > 0) // skip first assistant msg
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "API key not configured" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Monta histórico no formato do Gemini (roles: "user" e "model")
+    const contents = messages
+      .filter(m => m.role === "user" || m.role === "assistant")
       .map(m => ({
         role: m.role === "assistant" ? "model" : "user",
         parts: [{ text: m.content }],
       }));
 
-    const lastMessage = messages[messages.length - 1];
-
     const body = {
       system_instruction: {
         parts: [{ text: SYSTEM_PROMPT }],
       },
-      contents: [
-        ...history,
-        {
-          role: "user",
-          parts: [{ text: lastMessage.content }],
-        },
-      ],
+      contents,
       generationConfig: {
         maxOutputTokens: 1024,
         temperature: 0.85,
       },
     };
 
+    // Modelo atualizado: gemini-2.0-flash
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
@@ -80,27 +77,7 @@ export default async function handler(req) {
       }
     );
 
-    const data = await response.json();
-
     if (!response.ok) {
-      console.error("Gemini error:", data);
-      return new Response(JSON.stringify({ error: "Gemini API error", details: data }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, não consegui processar sua mensagem.";
-
-    return new Response(JSON.stringify({ reply }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    console.error(err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}
+      const errorText = await response.text();
+      console.error("Gemini API error:", response.status, errorText);
+      return new Resp
